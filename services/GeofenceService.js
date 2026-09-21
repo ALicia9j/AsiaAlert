@@ -1,16 +1,30 @@
-// services/GeofenceService.js
+/**
+ * Haversine Formula for Geofencing Proximity Operations
+ * Calculates spatial distance between two geographic coordinate pairs.
+ */
 export function calculateHaversineDistance(lat1, lon1, lat2, lon2) {
-  const earthRadiusKm = 6371;
-  const dLat = (lat2 - lat1) * (Math.PI / 180);
-  const dLon = (lon2 - lon1) * (Math.PI / 180);
-  const radLat1 = lat1 * (Math.PI / 180);
-  const radLat2 = lat2 * (Math.PI / 180);
+  const t0 = typeof performance !== 'undefined' ? performance.now() : Date.now();
+
+  const R = 6371; // Earth's mean radius in kilometers
+  const dLat = toRad(lat2 - lat1);
+  const dLon = toRad(lon2 - lon1);
+
   const a =
     Math.sin(dLat / 2) * Math.sin(dLat / 2) +
-    Math.cos(radLat1) * Math.cos(radLat2) * Math.sin(dLon / 2) * Math.sin(dLon / 2);
-          
+    Math.cos(toRad(lat1)) * Math.cos(toRad(lat2)) *
+    Math.sin(dLon / 2) * Math.sin(dLon / 2);
+
   const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
-  return earthRadiusKm * c;
+  const distance = R * c;
+
+  const t1 = typeof performance !== 'undefined' ? performance.now() : Date.now();
+  const execTimeMs = (t1 - t0).toFixed(4);
+
+  return { distance, execTimeMs };
+}
+
+function toRad(value) {
+  return (value * Math.PI) / 180;
 }
 
 /**
@@ -20,7 +34,7 @@ export async function fetchLiveDisasterAlerts() {
   try {
     const response = await fetch('https://earthquake.usgs.gov/fdsnws/event/1/query?format=geojson&minmagnitude=2.5');
     const data = await response.json();
-              
+
     return data.features.map(feature => ({
       id: feature.id,
       event: feature.properties.title,
