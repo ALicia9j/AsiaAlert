@@ -1,35 +1,33 @@
-// store/GamificationStore.js
 export const BADGES = [
   {
     id: 'first_step',
-    title: 'Pioneer Sentinel',
-    icon: '🛡️',
-    description: 'Completed your first preparedness checklist item.',
+    title: 'Ready Starter',
+    icon: '🌱',
     unlockedAtScore: 10,
+    description: 'Completed your first preparedness action.'
   },
   {
-    id: 'kit_master',
-    title: 'Survival Strategist',
-    icon: '🎒',
-    description: 'Achieved a 50% Emergency Readiness score.',
+    id: 'halfway',
+    title: 'Resilience Builder',
+    icon: '🛡️',
     unlockedAtScore: 50,
+    description: 'Reached 50% preparedness readiness.'
   },
   {
-    id: 'disaster_ready',
-    title: 'Resilience Master',
+    id: 'fully_prepared',
+    title: 'Disaster Master',
     icon: '🏆',
-    description: 'Achieved an 80%+ Emergency Readiness score.',
-    unlockedAtScore: 80,
+    unlockedAtScore: 100,
+    description: 'Completed all preparation tasks.'
   },
   {
     id: 'quiz_hero',
-    title: 'Emergency Scholar',
-    icon: '🎓',
-    description: 'Scored 100% on the Disaster Readiness Quiz.',
-    unlockedAtScore: 0,
+    title: 'Knowledge Scholar',
+    icon: '🧠',
+    unlockedAtScore: 0, // Unlocked dynamically via quiz completion
+    description: 'Scored 100% on the Disaster Readiness Quiz.'
   }
 ];
-
 export const PREPAREDNESS_QUIZ = [
   {
     id: 1,
@@ -53,9 +51,14 @@ export const PREPAREDNESS_QUIZ = [
     explanation: "Tsunami risk requires rapid movement inland and to higher elevation away from low-lying coastal zones."
   }
 ];
-
-export function calculateUserLevel(totalPoints) {
-  if (totalPoints >= 150) return { level: 3, title: 'Disaster Commander', color: '#34C759' };
-  if (totalPoints >= 75) return { level: 2, title: 'Prepared Resident', color: '#007AFF' };
-  return { level: 1, title: 'Novice Recruit', color: '#FF9500' };
+export function calculateUserLevel(score) {
+  if (score >= 120) {
+    return { level: 4, title: 'Guardian Elite', color: '#FF9500' };
+  } else if (score >= 80) {
+    return { level: 3, title: 'Resilience Vanguard', color: '#34C759' };
+  } else if (score >= 40) {
+    return { level: 2, title: 'Prepared Defender', color: '#007AFF' };
+  } else {
+    return { level: 1, title: 'Novice Responder', color: '#8E8E93' };
+  }
 }
