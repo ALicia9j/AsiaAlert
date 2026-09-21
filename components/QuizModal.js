@@ -9,10 +9,12 @@ export default function QuizModal({ visible, onClose, onCompleteQuiz }) {
   const [selectedOption, setSelectedOption] = useState(null);
   const [isFinished, setIsFinished] = useState(false);
 
-  const currentQ = PREPAREDNESS_QUIZ[currentIdx];
+  // Safe fallback if PREPAREDNESS_QUIZ is undefined or empty
+  const quizList = PREPAREDNESS_QUIZ || [];
+  const currentQ = quizList[currentIdx];
 
   const handleSelectOption = (idx) => {
-    if (selectedOption !== null) return; // Prevent double taps
+    if (selectedOption !== null || !currentQ) return; // Prevent double taps or empty question errors
     setSelectedOption(idx);
     if (idx === currentQ.correctAnswer) {
       setScore(prev => prev + 1);
@@ -20,13 +22,18 @@ export default function QuizModal({ visible, onClose, onCompleteQuiz }) {
   };
 
   const handleNext = () => {
+    if (!currentQ) return;
+    
+    const isCorrect = selectedOption === currentQ.correctAnswer;
+    const finalScore = score + (isCorrect ? 1 : 0);
     setSelectedOption(null);
-    if (currentIdx + 1 < PREPAREDNESS_QUIZ.length) {
-      setCurrentIdx(currentIdx + 1);
+
+    if (currentIdx + 1 < quizList.length) {
+      setCurrentIdx(prev => prev + 1);
     } else {
       setIsFinished(true);
-      const earnedPoints = (score + (selectedOption === currentQ.correctAnswer ? 1 : 0)) * 20;
-      onCompleteQuiz(earnedPoints, score === PREPAREDNESS_QUIZ.length);
+      const earnedPoints = finalScore * 20;
+      onCompleteQuiz(earnedPoints, finalScore === quizList.length);
     }
   };
 
@@ -43,57 +50,65 @@ export default function QuizModal({ visible, onClose, onCompleteQuiz }) {
       <View style={quizStyles.overlay}>
         <View style={quizStyles.container}>
           {!isFinished ? (
-            <ScrollView>
-              <Text style={quizStyles.progressText}>
-                Question {currentIdx + 1} of {PREPAREDNESS_QUIZ.length}
-              </Text>
-              <Text style={quizStyles.questionText}>{currentQ.question}</Text>
-
-              {currentQ.options.map((opt, idx) => {
-                let btnColor = '#F2F2F7';
-                let textColor = '#000000';
-
-                if (selectedOption !== null) {
-                  if (idx === currentQ.correctAnswer) {
-                    btnColor = '#34C759';
-                    textColor = '#FFFFFF';
-                  } else if (idx === selectedOption) {
-                    btnColor = '#FF3B30';
-                    textColor = '#FFFFFF';
+            currentQ ? (
+              <ScrollView>
+                <Text style={quizStyles.progressText}>
+                  Question {currentIdx + 1} of {quizList.length}
+                </Text>
+                <Text style={quizStyles.questionText}>{currentQ.question}</Text>
+                
+                {currentQ.options.map((opt, idx) => {
+                  let btnColor = '#F2F2F7';
+                  let textColor = '#000000';
+                  
+                  if (selectedOption !== null) {
+                    if (idx === currentQ.correctAnswer) {
+                      btnColor = '#34C759';
+                      textColor = '#FFFFFF';
+                    } else if (idx === selectedOption) {
+                      btnColor = '#FF3B30';
+                      textColor = '#FFFFFF';
+                    }
                   }
-                }
 
-                return (
-                  <TouchableOpacity
-                    key={idx}
-                    style={[quizStyles.optionButton, { backgroundColor: btnColor }]}
-                    onPress={() => handleSelectOption(idx)}
-                  >
-                    <Text style={[quizStyles.optionText, { color: textColor }]}>{opt}</Text>
-                  </TouchableOpacity>
-                );
-              })}
+                  return (
+                    <TouchableOpacity
+                      key={idx}
+                      style={[quizStyles.optionButton, { backgroundColor: btnColor }]}
+                      onPress={() => handleSelectOption(idx)}
+                    >
+                      <Text style={[quizStyles.optionText, { color: textColor }]}>{opt}</Text>
+                    </TouchableOpacity>
+                  );
+                })}
 
-              {selectedOption !== null && (
-                <View style={quizStyles.explanationBox}>
-                  <Text style={quizStyles.explanationText}>{currentQ.explanation}</Text>
-                  <TouchableOpacity style={quizStyles.nextButton} onPress={handleNext}>
-                    <Text style={quizStyles.nextButtonText}>Next Question ➔</Text>
-                  </TouchableOpacity>
-                </View>
-              )}
-            </ScrollView>
+                {selectedOption !== null && (
+                  <View style={quizStyles.explanationBox}>
+                    <Text style={quizStyles.explanationText}>{currentQ.explanation}</Text>
+                    <TouchableOpacity style={quizStyles.nextButton} onPress={handleNext}>
+                      <Text style={quizStyles.nextButtonText}>Next Question ➔</Text>
+                    </TouchableOpacity>
+                  </View>
+                )}
+              </ScrollView>
+            ) : (
+              <View style={quizStyles.resultsBox}>
+                <Text style={quizStyles.questionText}>No Quiz Questions Available</Text>
+                <TouchableOpacity style={quizStyles.nextButton} onPress={resetQuiz}>
+                  <Text style={quizStyles.nextButtonText}>Close</Text>
+                </TouchableOpacity>
+              </View>
+            )
           ) : (
             <View style={quizStyles.resultsBox}>
               <Text style={{ fontSize: 40, marginBottom: 10 }}>🎉</Text>
               <Text style={quizStyles.questionText}>Quiz Completed!</Text>
               <Text style={quizStyles.scoreText}>
-                You scored {score} / {PREPAREDNESS_QUIZ.length}
+                You scored {score} / {quizList.length}
               </Text>
               <Text style={quizStyles.rewardText}>
                 +{(score * 20)} Gamification Points Earned!
               </Text>
-
               <TouchableOpacity style={quizStyles.nextButton} onPress={resetQuiz}>
                 <Text style={quizStyles.nextButtonText}>Return to App</Text>
               </TouchableOpacity>
@@ -175,5 +190,5 @@ const quizStyles = StyleSheet.create({
     color: '#34C759',
     fontWeight: 'bold',
     marginBottom: 20,
-  }
+  },
 });
