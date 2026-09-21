@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { View, ScrollView, Text, TouchableOpacity, StyleSheet } from 'react-native';
+import { View, ScrollView, Text, TouchableOpacity } from 'react-native';
 import { initialLocalState } from './store/MockData';
 import { calculateHaversineDistance } from './services/GeofenceService';
 import { fetchGdacsAlerts } from './services/GdacsService';
@@ -12,16 +12,17 @@ import RecoveryScreen from './screens/RecoveryScreen';
 
 export default function App() {
   const [appState, setAppState] = useState(initialLocalState);
-  const [consoleLog, setConsoleLog] = useState("System initialized. Standing by for GDACS API sync.");
+  const [consoleLog, setConsoleLog] = useState("System initialized. Standing by for UN-GDACS API sync.");
   const [loading, setLoading] = useState(false);
   const [activeHazard, setActiveHazard] = useState(null);
 
   // Gamification Handler: Processes Quiz Points & Unlocks Badges
   const handleAwardQuizPoints = (earnedPoints, isPerfectScore) => {
+    const t0 = typeof performance !== 'undefined' ? performance.now() : Date.now();
     setAppState(prevState => {
       const newScore = prevState.userProfile.readinessScore + earnedPoints;
       const existingBadges = [...(prevState.userProfile.unlockedBadges || [])];
-      
+
       if (isPerfectScore && !existingBadges.includes('quiz_hero')) {
         existingBadges.push('quiz_hero');
       }
@@ -34,7 +35,9 @@ export default function App() {
         }
       };
     });
-    setConsoleLog(`[GAMIFICATION] Quiz completed! Awarded +${earnedPoints} XP.`);
+    const t1 = typeof performance !== 'undefined' ? performance.now() : Date.now();
+    const mutationTime = (t1 - t0).toFixed(2);
+    setConsoleLog(`[GAMIFICATION] Quiz completed! Awarded +${earnedPoints} XP. (State mutation: ${mutationTime} ms)`);
   };
 
   // Dynamic GDACS Ingestion & Geofencing Pipeline
@@ -46,52 +49,54 @@ export default function App() {
     setLoading(false);
     
     if (!gdacsEvents || gdacsEvents.length === 0) {
-      setConsoleLog("[API ERROR] Could not retrieve GDACS telemetry.");
+      setConsoleLog("[API ERROR] Offline mode active. Could not fetch GDACS remote telemetry.");
       return;
     }
-    
-    setConsoleLog(`[API RESPONSE] Ingested ${gdacsEvents.length} active global GDACS events.`);
-    
+
+    const startCompute = typeof performance !== 'undefined' ? performance.now() : Date.now();
     let triggeredHazard = null;
     let minDistance = Infinity;
 
     // Iterate through GDACS events & calculate spatial proximity
     gdacsEvents.forEach(event => {
-      const dist = calculateHaversineDistance(
+      const { distance } = calculateHaversineDistance(
         appState.currentLocation.latitude,
         appState.currentLocation.longitude,
         event.lat,
         event.lon
       );
-      
-      if (dist < minDistance) {
-        minDistance = dist;
+
+      if (distance < minDistance) {
+        minDistance = distance;
       }
 
-      // Trigger threshold: Red or Orange alert within 1000km OR any alert within 500km
       const isHighSeverity = event.alertLevel === "Red" || event.alertLevel === "Orange";
-      if ((dist < 1000 && isHighSeverity) || dist < 500) {
+      if ((distance < 1000 && isHighSeverity) || distance < 500) {
         if (!triggeredHazard) {
           triggeredHazard = {
             event: `${event.alertLevel.toUpperCase()} ALERT: ${event.name}`,
             magnitude: event.eventType,
-            calculatedDistance: dist,
+            calculatedDistance: distance,
             country: event.country
           };
         }
       }
     });
 
+    const endCompute = typeof performance !== 'undefined' ? performance.now() : Date.now();
+    const totalComputeMs = (endCompute - startCompute).toFixed(2);
+
     if (triggeredHazard) {
       setActiveHazard(triggeredHazard);
       setAppState(prevState => ({ ...prevState, systemMode: "ACTIVE_RESPONSE" }));
-      setConsoleLog(`[CRITICAL OVERRIDE] GDACS Alert in ${triggeredHazard.country}! Proximity: ${triggeredHazard.calculatedDistance.toFixed(1)} km.`);
+      setConsoleLog(`[CRITICAL OVERRIDE] Hazard in ${triggeredHazard.country}! Distance: ${triggeredHazard.calculatedDistance.toFixed(1)} km (Batch Haversine Loop: ${totalComputeMs} ms).`);
     } else {
-      setConsoleLog(`[SAFE] Nearest active GDACS event is ${minDistance.toFixed(1)} km away. No local trigger.`);
+      setConsoleLog(`[SAFE] Nearest active event is ${minDistance.toFixed(1)} km away. (Processed in ${totalComputeMs} ms).`);
     }
   };
 
   const toggleChecklistTask = (taskId) => {
+    const t0 = typeof performance !== 'undefined' ? performance.now() : Date.now();
     const updatedTasks = appState.checklistTasks.map(task => {
       if (task.id === taskId) {
         return { ...task, completed: !task.completed };
@@ -107,26 +112,45 @@ export default function App() {
     setAppState(prevState => ({
       ...prevState,
       checklistTasks: updatedTasks,
-      userProfile: { 
-        ...prevState.userProfile, 
-        readinessScore: accumulatedScore 
+      userProfile: {
+        ...prevState.userProfile,
+        readinessScore: accumulatedScore
       }
     }));
+
+    const t1 = typeof performance !== 'undefined' ? performance.now() : Date.now();
+    const mutationTime = (t1 - t0).toFixed(2);
+    setConsoleLog(`[STATE MUTATION] Readiness Score: ${accumulatedScore}% (Mutation time: ${mutationTime} ms)`);
+  };
+
+  // Instant Simulated Crisis Override for Video Recording
+  const triggerSimulatedCrisis = () => {
+    const t0 = typeof performance !== 'undefined' ? performance.now() : Date.now();
     
-    setConsoleLog(`[STATE MUTATION] Readiness Score: ${accumulatedScore}%`);
+    setActiveHazard({
+      event: "RED ALERT: Simulated Major Seismic Event",
+      magnitude: "EQ (Magnitude 7.2)",
+      calculatedDistance: 4.8,
+      country: "Japan"
+    });
+    
+    setAppState(prevState => ({ ...prevState, systemMode: "ACTIVE_RESPONSE" }));
+    
+    const t1 = typeof performance !== 'undefined' ? performance.now() : Date.now();
+    const latency = (t1 - t0).toFixed(2);
+    setConsoleLog(`[CRITICAL OVERRIDE] State Mutation to ACTIVE_RESPONSE completed in ${latency} ms.`);
   };
 
   return (
     <View style={{ flex: 1, backgroundColor: '#F2F2F7' }}>
-      {/* Scrollable Main Content */}
-      <ScrollView style={styles.container} contentContainerStyle={{ paddingBottom: 100 }}>
+      <ScrollView style={{ flex: 1, paddingHorizontal: 16, paddingTop: 40 }} contentContainerStyle={{ paddingBottom: 100 }}>
         
-        {/* Terminal Log Output */}
+        {/* Real-time Telemetry Console */}
         <View style={styles.logBox}>
           <Text style={styles.logText}>{consoleLog}</Text>
         </View>
 
-        {/* View Mode Switching */}
+        {/* View Mode Router */}
         {appState.systemMode === "PREPARATION" && (
           <PreparationScreen
             userProfile={appState.userProfile}
@@ -163,13 +187,12 @@ export default function App() {
         )}
       </ScrollView>
 
-      {/* Fixed Bottom Navigation Bar */}
+      {/* Fixed Navigation Bar */}
       <View style={navStyles.navbar}>
         <TouchableOpacity
           style={navStyles.navButton}
           onPress={() => setAppState(prevState => ({ ...prevState, systemMode: "PREPARATION" }))}
         >
-          <Text style={navStyles.navIcon}>📋</Text>
           <Text style={[
             navStyles.navText,
             appState.systemMode === "PREPARATION" && navStyles.activeNavText
@@ -180,14 +203,13 @@ export default function App() {
 
         <TouchableOpacity
           style={navStyles.navButton}
-          onPress={() => setAppState(prevState => ({ ...prevState, systemMode: "ACTIVE_RESPONSE" }))}
+          onPress={triggerSimulatedCrisis}
         >
-          <Text style={navStyles.navIcon}>⚠️</Text>
           <Text style={[
             navStyles.navText,
             appState.systemMode === "ACTIVE_RESPONSE" && navStyles.activeNavText
           ]}>
-            Response
+            Response (Demo)
           </Text>
         </TouchableOpacity>
 
@@ -195,7 +217,6 @@ export default function App() {
           style={navStyles.navButton}
           onPress={() => setAppState(prevState => ({ ...prevState, systemMode: "RECOVERY" }))}
         >
-          <Text style={navStyles.navIcon}>🗺️</Text>
           <Text style={[
             navStyles.navText,
             appState.systemMode === "RECOVERY" && navStyles.activeNavText
@@ -208,7 +229,7 @@ export default function App() {
   );
 }
 
-const navStyles = StyleSheet.create({
+const navStyles = {
   navbar: {
     position: 'absolute',
     bottom: 0,
@@ -223,22 +244,14 @@ const navStyles = StyleSheet.create({
     borderTopColor: '#E5E5EA',
     paddingBottom: 10,
     elevation: 8,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: -2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
   },
   navButton: {
     alignItems: 'center',
     justifyContent: 'center',
     flex: 1,
   },
-  navIcon: {
-    fontSize: 20,
-    marginBottom: 2,
-  },
   navText: {
-    fontSize: 11,
+    fontSize: 13,
     color: '#8E8E93',
     fontWeight: '500',
   },
@@ -246,4 +259,4 @@ const navStyles = StyleSheet.create({
     color: '#007AFF',
     fontWeight: 'bold',
   },
-});
+};
