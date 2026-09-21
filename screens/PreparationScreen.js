@@ -25,7 +25,7 @@ export default function PreparationScreen({
           </View>
           <Text style={prepStyles.levelBadge}>LVL {userLevel.level}</Text>
         </View>
-                 
+
         {/* Readiness Metric Bar */}
         <View style={{ marginTop: 15 }}>
           <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginBottom: 5 }}>
@@ -35,35 +35,35 @@ export default function PreparationScreen({
           <View style={prepStyles.progressBarTrack}>
             <View 
               style={[
-                prepStyles.progressBarFill,
+                prepStyles.progressBarFill, 
                 { width: `${Math.min(userProfile.readinessScore, 100)}%`, backgroundColor: userLevel.color }
-              ]}
+              ]} 
             />
           </View>
         </View>
       </View>
 
-      {/* Badges Shelf Component */}
+      {/* Badges Shelf */}
       <Text style={prepStyles.sectionHeader}>Unlocked Badges</Text>
       <View style={prepStyles.badgeRow}>
         {BADGES.map(badge => {
           const isUnlocked = (userProfile.unlockedBadges || []).includes(badge.id) || 
-                               userProfile.readinessScore >= badge.unlockedAtScore;
+                                userProfile.readinessScore >= badge.unlockedAtScore;
           return (
             <View key={badge.id} style={[prepStyles.badgeCard, !isUnlocked && prepStyles.badgeLocked]}>
-              <Text style={{ fontSize: 24 }}>{isUnlocked ? badge.icon : '🔒'}</Text>
+              <Text style={{ fontSize: 22 }}>{isUnlocked ? badge.icon : "🔒"}</Text>
               <Text style={prepStyles.badgeTitle}>{badge.title}</Text>
             </View>
           );
         })}
       </View>
 
-      {/* Gamified Quiz Launcher */}
+      {/* Gamified Quiz Trigger */}
       <TouchableOpacity 
         style={prepStyles.quizBanner}
         onPress={() => setQuizVisible(true)}
       >
-        <Text style={{ fontSize: 24, marginRight: 12 }}>🧠</Text>
+        <Text style={{ fontSize: 22, marginRight: 12 }}>🧠</Text>
         <View style={{ flex: 1 }}>
           <Text style={prepStyles.quizBannerTitle}>Test Your Disaster Knowledge</Text>
           <Text style={prepStyles.quizBannerSub}>Earn +60 XP & Unlock Scholar Badge</Text>
@@ -71,18 +71,18 @@ export default function PreparationScreen({
         <Text style={{ fontSize: 18, color: '#007AFF' }}>➔</Text>
       </TouchableOpacity>
 
-      {/* Sync Button */}
+      {/* Sync GDACS Button */}
       <TouchableOpacity 
         style={[prepStyles.actionButton, { backgroundColor: '#34C759', marginVertical: 12 }]}
         onPress={onSyncFeed}
         disabled={loading}
       >
         <Text style={prepStyles.actionButtonText}>
-          {loading ? "Syncing Feed..." : "📡 Sync UN-GDACS Global Hazard Feed"}
+          {loading ? "Syncing Feed..." : "🌐 Sync UN-GDACS Global Hazard Feed"}
         </Text>
       </TouchableOpacity>
 
-      {/* Checklist Rendering */}
+      {/* Readiness Checklist */}
       <Text style={prepStyles.sectionHeader}>Preparation Tasks</Text>
       {checklistTasks.map(task => (
         <TouchableOpacity 
@@ -108,7 +108,7 @@ export default function PreparationScreen({
 }
 
 const prepStyles = StyleSheet.create({
-  container: { padding: 16 },
+  container: { paddingBottom: 10 },
   rankCard: {
     backgroundColor: '#FFFFFF',
     padding: 16,
